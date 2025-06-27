@@ -6,13 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.emp.entities.Employee;
-import com.emp.entities.User;
 import com.emp.repository.EmployeeRepository;
 
 @Service
 public class EmployeeService {
- 
-	@Autowired
+
+    @Autowired
     private EmployeeRepository employeeRepository;
 
     public List<Employee> getAllEmployees() {
@@ -29,14 +28,11 @@ public class EmployeeService {
     }
 
     public Employee updateEmployee(String id, Employee updatedEmployee) {
-    	System.out.println("Employee Service Called");
         Employee employee = getEmployeeById(id);
         employee.setName(updatedEmployee.getName());
         employee.setDepartment(updatedEmployee.getDepartment());
         employee.setEmail(updatedEmployee.getEmail());
         employee.setSalary(updatedEmployee.getSalary());
-        
-        // Update other fields accordingly
         return employeeRepository.save(employee);
     }
 
@@ -44,16 +40,7 @@ public class EmployeeService {
         employeeRepository.deleteById(id);
     }
 
-    public List<Employee> getEmployeesByUserId(Long userId) {
-        return employeeRepository.findByCreatedBy_Id(userId);
+    public List<Employee> getEmployeesByUserId(String userId) {
+        return employeeRepository.findByCreatedBy(userId);
     }
-
-	public List<Employee> getEmployeesByUser(Long id) {
-		
-		    return employeeRepository.findByCreatedBy_Id(id);
-		
-
-	}
-	
-	
 }

@@ -1,18 +1,17 @@
 package com.emp.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
+@Document(collection = "employees")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Employee {
-    @Id 
+    @Id
     private String id;
 
     private String name;
@@ -20,6 +19,7 @@ public class Employee {
     private String department;
     private Double salary;
 
-    @ManyToOne
-    private User createdBy; // Admin who added the employee
+    // Adjusted to MongoDB @DBRef instead of @ManyToOne
+    // private User createdBy;
+    private String createdBy; // Assuming the ID of the User who created this employee
 }

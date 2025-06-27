@@ -1,6 +1,5 @@
 package com.emp.controllers;
 
-import java.net.http.HttpRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.emp.dto.AttendanceResponseDTO;
 import com.emp.entities.Attendance;
 import com.emp.entities.User;
 import com.emp.repository.UserRepository;
@@ -26,60 +26,61 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/attendances")
-public class attendanceController {
+public class AttendanceController {
 
-	 @Autowired
-	    private AttendanceService attendanceService;
-	 @Autowired
-        private JwtUtil jwtUtil;
-	 @Autowired
-	 UserRepository userRepository;
-	 @GetMapping("/my-attendance")
-	    public ResponseEntity<?> getAttendanceForCurrentUser(HttpServletRequest request) {
-	        String authHeader = request.getHeader("Authorization");
-	        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-	            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-	                    .body(Map.of("message", "Unauthorized: Missing or invalid token"));
-	        }
+    @Autowired
+    private AttendanceService attendanceService;
 
-	        String token = authHeader.substring(7);
-	        String username = jwtUtil.extractUsername(token);
-	        User user = (User) userRepository.findByUsername(username);
+    @Autowired
+    private JwtUtil jwtUtil;
 
-	        if (user == null) {
-	            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-	                    .body(Map.of("message", "Unauthorized: User not found"));
-	        }
+    @Autowired
+    private UserRepository userRepository;
 
-	        // Fetch all attendance records linked to employees created by this user
-	        List<Attendance> attendanceList = attendanceService.getAttendanceByUser(user.getId());
+    @GetMapping("/my-attendance")
+    public ResponseEntity<?> getAttendanceForCurrentUser(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Unauthorized: Missing or invalid token"));
+        }
 
-	        return ResponseEntity.ok(attendanceList);
-	    }
+        String token = authHeader.substring(7);
+        String username = jwtUtil.extractUsername(token);
+        User user = userRepository.findByUsername(username);
 
-	    @GetMapping("/{id}")
-	    public Attendance getAttendanceById(@PathVariable Long id) {
-	        return attendanceService.getAttendanceById(id);
-	    }
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Unauthorized: User not found"));
+        }
 
-	    @PostMapping
-	    public Attendance createAttendance(@RequestBody Attendance attendance) {
-	        return attendanceService.createAttendance(attendance);
-	    }
+        List<AttendanceResponseDTO> attendance = attendanceService.getAttendanceForUser(user.getId());
+        return ResponseEntity.ok(attendance);
+    }
 
-	    @PutMapping("/{id}")
-	    public Attendance updateAttendance(@PathVariable Long id, @RequestBody Attendance attendance) {
-	        return attendanceService.updateAttendance(id, attendance);
-	    }
+    @GetMapping("/{id}")
+    public Attendance getAttendanceById(@PathVariable String id) {
+        return attendanceService.getAttendanceById(id);
+    }
 
-	    @DeleteMapping("/{id}")
-	    public void deleteAttendance(@PathVariable Long id) {
-	    	System.out.println("Deleting...");
-	        attendanceService.deleteAttendance(id);
-	    }
+    @PostMapping
+    public Attendance createAttendance(@RequestBody Attendance attendance) {
+        return attendanceService.createAttendance(attendance);
+    }
 
-	    @GetMapping("/employee/{employeeId}")
-	    public List<Attendance> getAttendancesByEmployeeId(@PathVariable String employeeId) {
-	        return attendanceService.getAttendancesByEmployeeId(employeeId);
-	    }
+    @PutMapping("/{id}")
+    public Attendance updateAttendance(@PathVariable String id, @RequestBody Attendance attendance) {
+    	System.out.println(id+" hii "+attendance);
+        return attendanceService.updateAttendance(id, attendance);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteAttendance(@PathVariable String id) {
+        attendanceService.deleteAttendance(id);
+    }
+
+    @GetMapping("/employee/{employeeId}")
+    public List<Attendance> getAttendancesByEmployeeId(@PathVariable String employeeId) {
+        return attendanceService.getAttendancesByEmployeeId(employeeId);
+    }
 }

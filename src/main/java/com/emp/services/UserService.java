@@ -10,14 +10,15 @@ import com.emp.repository.UserRepository;
 
 @Service
 public class UserService {
-	@Autowired
-	UserRepository userRepository;
 
-	public List<User> getAllUsers() {
+    @Autowired
+    private UserRepository userRepository;
+
+    public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    public User getUserById(Long id) {
+    public User getUserById(String id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
     }
@@ -26,15 +27,14 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public User updateUser(Long id, User updatedUser) {
+    public User updateUser(String id, User updatedUser) {
         User user = getUserById(id);
         user.setUsername(updatedUser.getUsername());
         user.setRole(updatedUser.getRole());
-        // Update other fields accordingly
         return userRepository.save(user);
     }
 
-    public void deleteUser(Long id) {
+    public void deleteUser(String id) {
         userRepository.deleteById(id);
     }
 }

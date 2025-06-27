@@ -27,18 +27,14 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/employees")
-public class employeeController {
-	@Autowired
-	AttendanceService attendanceService;
-	@Autowired
-	LeaveRequestService leaveService;
+public class EmployeeController {
 
-	@Autowired
-    private EmployeeService employeeService;
-	@Autowired
-	UserRepository userRepository;
-    @Autowired
-	JwtUtil jwtUtil;
+    @Autowired private AttendanceService attendanceService;
+    @Autowired private LeaveRequestService leaveService;
+    @Autowired private EmployeeService employeeService;
+    @Autowired private UserRepository userRepository;
+    @Autowired private JwtUtil jwtUtil;
+
     @GetMapping
     public List<Employee> getAllEmployees() {
         return employeeService.getAllEmployees();
@@ -51,95 +47,50 @@ public class employeeController {
 
     @PostMapping
     public ResponseEntity<Object> createEmployee(@RequestBody Employee employee, HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Unauthorized: Missing or invalid token"));
+        String userId = extractUserIdFromToken(request);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
         }
 
-        String token = authHeader.substring(7);
-        String username = jwtUtil.extractUsername(token);
+        employee.setCreatedBy(userId);
+        Employee saved = employeeService.createEmployee(employee);
 
-        User user = (User) userRepository.findByUsername(username);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Unauthorized: User not found"));
-        }
-
-        employee.setCreatedBy(user);
-        Employee savedEmployee = employeeService.createEmployee(employee);
-
-        return ResponseEntity.ok(Map.of(
-            "message", "Employee created successfully",
-            "employeeId", savedEmployee.getId()
-        ));
+        return ResponseEntity.ok(Map.of("message", "Employee created successfully", "employeeId", saved.getId()));
     }
-
 
     @PutMapping("/{id}")
-    public ResponseEntity<Object> updateEmployee(
-            @PathVariable String id,
-            @RequestBody Employee employee,
-            HttpServletRequest request) {
-    	System.out.println(employee);
-    	
-
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Unauthorized: Missing or invalid token"));
+    public ResponseEntity<Object> updateEmployee(@PathVariable String id, @RequestBody Employee employee, HttpServletRequest request) {
+        String userId = extractUserIdFromToken(request);
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Unauthorized"));
         }
 
-        String token = authHeader.substring(7);
-        String username = jwtUtil.extractUsername(token);
-
-        User user = (User) userRepository.findByUsername(username);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Unauthorized: User not found"));
-        }
-
-        employee.setCreatedBy(user); // Set explicitly, avoid deserialization issues
-
+        employee.setCreatedBy(userId);
         Employee updated = employeeService.updateEmployee(id, employee);
-       
 
-        return ResponseEntity.ok(Map.of(
-            "message", "Employee updated successfully",
-            "employeeId", updated.getId()
-        ));
+        return ResponseEntity.ok(Map.of("message", "Employee updated successfully", "employeeId", updated.getId()));
     }
-
 
     @DeleteMapping("/{id}")
     public void deleteEmployee(@PathVariable String id) {
-    	System.out.println(id);
-    	attendanceService.deleteAttendanceByEmployeeId(id);
+        attendanceService.deleteAttendanceByEmployeeId(id);
         leaveService.deleteLeaveRequestByEmployeeId(id);
         employeeService.deleteEmployee(id);
     }
 
-    @GetMapping("/user/{userId}")
-    public List<Employee> getEmployeesByUserId(@PathVariable Long userId) {
-        return employeeService.getEmployeesByUserId(userId);
-    }
-    
     @GetMapping("/my-employees")
     public ResponseEntity<List<Employee>> getMyEmployees(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+        String userId = extractUserIdFromToken(request);
+        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(employeeService.getEmployeesByUserId(userId));
+    }
 
-        String token = authHeader.substring(7);
-        String username = jwtUtil.extractUsername(token);
+    private String extractUserIdFromToken(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token == null || !token.startsWith("Bearer ")) return null;
 
-        User user = (User) userRepository.findByUsername(username);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        List<Employee> employees = employeeService.getEmployeesByUser(user.getId());
-        return ResponseEntity.ok(employees);
+        String username = jwtUtil.extractUsername(token.substring(7));
+        User user = userRepository.findByUsername(username);
+        return user != null ? user.getId() : null;
     }
 }
